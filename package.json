@@ -1,0 +1,16 @@
+{
+  "name": "ppr-from-scratch",
+  "version": "1.0.0",
+  "description": "A simplified Partial Prerendering (PPR) demo to understand how Next.js implements it",
+  "type": "module",
+  "scripts": {
+    "build": "node src/build.js",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "react": "0.0.0-experimental-65eec428-20251218",
+    "react-dom": "0.0.0-experimental-65eec428-20251218"
+  }
+}
