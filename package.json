@@ -9,8 +9,9 @@
     "dev": "node --watch src/server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "react": "0.0.0-experimental-65eec428-20251218",
-    "react-dom": "0.0.0-experimental-65eec428-20251218"
+    "express": "^4.22.1",
+    "react": "file:.yalc/react",
+    "react-dom": "file:.yalc/react-dom",
+    "scheduler": "file:.yalc/scheduler"
   }
 }
