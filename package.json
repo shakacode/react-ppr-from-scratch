@@ -4,6 +4,7 @@
   "description": "A simplified Partial Prerendering (PPR) demo to understand how Next.js implements it",
   "type": "module",
   "scripts": {
+    "setup-react": "bash scripts/setup-react.sh",
     "build": "node src/build.js",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js"

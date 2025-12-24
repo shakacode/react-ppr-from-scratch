@@ -102,9 +102,10 @@ app.get('/', async (req, res) => {
     // =========================================================================
     //
     // This is where PPR shines:
-    // - We DON'T re-render the static shell
-    // - We ONLY render the postponed (dynamic) parts
-    // - React knows exactly where to inject the content
+    // 1. First, send the static shell (prerendered at build time)
+    // 2. Then stream the dynamic parts using resumeToPipeableStream
+    // - Static parts are NOT re-rendered at request time
+    // - Only the postponed subtrees are processed
     //
     // =========================================================================
 
@@ -114,10 +115,17 @@ app.get('/', async (req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
 
+    // Step 2a: Send the static shell first (without closing </body></html>)
+    const shellHtml = readFileSync('./dist/shell.html', 'utf-8');
+    // The shell ends before </body></html>, we'll add those after streaming
+    const shellWithoutClose = shellHtml.replace(/<\/body><\/html>\s*$/, '');
+    res.write(shellWithoutClose);
+    console.log('   📄 Sent static shell');
+
     // Create a request store with the actual HTTP request
     const requestStore = createRequestStore(req);
 
-    // Resume rendering from the postponed state
+    // Step 2b: Stream the dynamic content
     await new Promise((resolve, reject) => {
       renderStorage.run(requestStore, () => {
         const { pipe } = resumeToPipeableStream(

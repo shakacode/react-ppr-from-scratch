@@ -7,21 +7,23 @@
  *
  * HOW IT WORKS:
  * -------------
- * 1. During prerender, dynamic APIs throw a never-resolving Promise
- * 2. This suspends the component - React renders the Suspense fallback
- * 3. When the prerender is aborted, React captures the "postponed" state
+ * 1. During prerender, dynamic APIs call React.unstable_postpone()
+ * 2. This throws a special Postpone error that React captures
+ * 3. React renders the Suspense fallback and records the "postponed" state
  * 4. At request time, resumeToPipeableStream() continues from that state
  * 5. Dynamic APIs now return real data, and React renders only those parts
  *
- * WHY throw a Promise?
- * --------------------
- * In React's Suspense model, throwing a Promise signals "I'm not ready yet".
- * For server-side prerendering, throwing a never-resolving Promise causes
- * permanent suspension, which React captures as "postponed" state when aborted.
+ * WHY React.unstable_postpone?
+ * ----------------------------
+ * React.unstable_postpone(reason) is React's official API for signaling that
+ * a component should be postponed during prerendering. It throws a special
+ * error with $$typeof = Symbol.for('react.postpone') that React's Fizz server
+ * recognizes and handles specially.
  *
- * This is the same approach used in React's own tests for the prerender API.
+ * This is the same API that Next.js uses for Partial Prerendering (PPR).
  */
 
+import React from 'react';
 import {
   renderStorage,
   trackDynamicAccess,
@@ -30,27 +32,27 @@ import {
 /**
  * Postpone rendering - marks this component as dynamic
  *
- * Throws a never-resolving Promise to suspend the component.
+ * Uses React.unstable_postpone() which throws a special Postpone error.
  * During prerender, this causes React to:
  * 1. Stop rendering this subtree
  * 2. Render the Suspense fallback instead
- * 3. Capture this location in the "postponed" state when aborted
+ * 3. Capture this location in the "postponed" state
  *
- * At request time, this function returns normally (doesn't throw),
- * so the component renders with real data.
+ * At request time, this function is not called because the store type
+ * is 'request', so the component renders with real data.
  *
  * @param {string} route - The route being rendered
  * @param {string} expression - The dynamic API that triggered postpone
  */
 function postpone(route, expression) {
-  console.log(`[PPR] Suspending render for: ${expression}`);
+  const reason = `Route ${route} needs to bail out of prerendering at this point because it used ${expression}.`;
+  console.log(`[PPR] Postponing render: ${expression}`);
 
-  // Throw a Promise that never resolves - this suspends the component
-  // React's Fizz server captures this as "postponed" state when aborted
-  throw new Promise(() => {});
+  // Use React's official postpone API
+  React.unstable_postpone(reason);
 }
 
-console.log('[PPR] Using Promise suspension (custom React build with enableHalt)');
+console.log('[PPR] Using React.unstable_postpone (React 19.2.3 experimental)');
 
 /**
  * cookies() - Access request cookies

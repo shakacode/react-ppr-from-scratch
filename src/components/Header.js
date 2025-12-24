@@ -12,10 +12,11 @@
  */
 
 import React from 'react';
+import { getCurrentTime } from '../static-apis.js';
 
 export function Header() {
   // Everything here is static - no dynamic APIs used
-  const navItems = ['Home', 'Products', 'About', 'Contact'];
+  const navItems = ['Home', 'Products', 'About', 'Contact', getCurrentTime()];
 
   return React.createElement('header', {
     style: {

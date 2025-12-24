@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import { getCurrentTime } from '../static-apis.js';
 
 // Simulated static product data
 const products = [
@@ -25,6 +26,7 @@ const products = [
   { id: 2, name: 'Wireless Mouse', price: 79.99, emoji: '🖱️' },
   { id: 3, name: 'USB-C Hub', price: 59.99, emoji: '🔌' },
   { id: 4, name: '4K Monitor', price: 399.99, emoji: '🖥️' },
+  { id: 5, name: getCurrentTime(), price: 399.99, emoji: '🖥️' },
 ];
 
 export function ProductList() {

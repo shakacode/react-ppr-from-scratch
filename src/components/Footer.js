@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import { getCurrentTime } from '../static-apis.js';
 
 export function Footer() {
   // Static content - same for all users
@@ -21,7 +22,7 @@ export function Footer() {
     }
   }, [
     React.createElement('p', { key: 'copyright' },
-      '© 2024 PPR Demo Store. Built to demonstrate Partial Prerendering.'
+      `© 2024 PPR Demo Store. Built to demonstrate Partial Prerendering. ${getCurrentTime()}`
     ),
     React.createElement('p', {
       key: 'note',
