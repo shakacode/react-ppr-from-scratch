@@ -3,36 +3,23 @@
  * DYNAMIC APIs - The Functions That Make a Component "Dynamic"
  * =============================================================================
  *
- * This demo shows how PPR works by using Suspense + suspension.
+ * This demo shows how PPR works using React's real prerender/resume mechanism.
  *
- * IMPORTANT DISCOVERY:
+ * HOW IT WORKS:
+ * -------------
+ * 1. During prerender, dynamic APIs throw a never-resolving Promise
+ * 2. This suspends the component - React renders the Suspense fallback
+ * 3. When the prerender is aborted, React captures the "postponed" state
+ * 4. At request time, resumeToPipeableStream() continues from that state
+ * 5. Dynamic APIs now return real data, and React renders only those parts
+ *
+ * WHY throw a Promise?
  * --------------------
- * We investigated React's postpone mechanism thoroughly:
+ * In React's Suspense model, throwing a Promise signals "I'm not ready yet".
+ * For server-side prerendering, throwing a never-resolving Promise causes
+ * permanent suspension, which React captures as "postponed" state when aborted.
  *
- * 1. React HAS a postpone mechanism internally:
- *    - Symbol: Symbol.for('react.postpone')
- *    - File: packages/react/src/ReactPostpone.js
- *    - Gated by: enablePostpone feature flag
- *
- * 2. BUT it's DISABLED in all npm builds (including experimental):
- *    - enablePostpone = __EXPERIMENTAL__ in source
- *    - Compiled to FALSE in npm builds
- *    - Only enabled in Next.js's custom React builds
- *
- * 3. Our approach: Use Suspense + never-resolving Promise
- *    - Achieves the same visual result
- *    - Works with standard React 19 or experimental builds
- *    - At request time, we do a full re-render (not resume)
- *
- * HOW NEXT.JS DOES IT (for reference):
- * ------------------------------------
- * Next.js uses a custom React build where enablePostpone = true.
- * Their React.unstable_postpone() throws:
- *   const postponeInstance = new Error(reason);
- *   postponeInstance.$$typeof = Symbol.for('react.postpone');
- *   throw postponeInstance;
- *
- * React's Fizz server catches this and saves the position for resume().
+ * This is the same approach used in React's own tests for the prerender API.
  */
 
 import {
@@ -40,22 +27,17 @@ import {
   trackDynamicAccess,
 } from './async-storage.js';
 
-// ============================================================================
-// POSTPONE IMPLEMENTATION
-// ============================================================================
-//
-// We use a never-resolving Promise to suspend the component permanently.
-// This causes React to:
-// 1. Stop rendering this subtree
-// 2. Render the Suspense fallback instead
-// 3. At request time, we do a fresh render with real data
-//
-// This is less efficient than React's true postpone (which can resume),
-// but achieves the same user-facing result.
-// ============================================================================
-
 /**
  * Postpone rendering - marks this component as dynamic
+ *
+ * Throws a never-resolving Promise to suspend the component.
+ * During prerender, this causes React to:
+ * 1. Stop rendering this subtree
+ * 2. Render the Suspense fallback instead
+ * 3. Capture this location in the "postponed" state when aborted
+ *
+ * At request time, this function returns normally (doesn't throw),
+ * so the component renders with real data.
  *
  * @param {string} route - The route being rendered
  * @param {string} expression - The dynamic API that triggered postpone
@@ -63,12 +45,12 @@ import {
 function postpone(route, expression) {
   console.log(`[PPR] Suspending render for: ${expression}`);
 
-  // Throw a Promise that never resolves
-  // This causes permanent suspension -> Suspense fallback is rendered
+  // Throw a Promise that never resolves - this suspends the component
+  // React's Fizz server captures this as "postponed" state when aborted
   throw new Promise(() => {});
 }
 
-console.log('[PPR] Using Suspense-based postpone (works with all React 19 builds)');
+console.log('[PPR] Using Promise suspension (custom React build with enableHalt)');
 
 /**
  * cookies() - Access request cookies
