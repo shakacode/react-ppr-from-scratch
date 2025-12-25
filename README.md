@@ -203,6 +203,24 @@ Watch the terminal to see:
 4. **`src/dynamic-apis.js`** - How `cookies()` triggers postpone
 5. **`src/components/AsyncComponent.js`** - Cached async component example
 
+## Deep Dive Documentation
+
+For a comprehensive understanding of PPR internals:
+
+- **[How PPR Works](docs/HOW_PPR_WORKS.md)** - Complete deep dive into:
+  - Two-phase prerendering model
+  - CacheSignal and async tracking
+  - Component-level caching
+  - Dynamic APIs and postpone
+  - The resume mechanism
+  - React APIs used
+
+- **[Cache Key Generation](docs/CACHE_KEY_GENERATION.md)** - How Next.js generates cache keys:
+  - Compiler transformation with SWC
+  - SHA-1 hashing of file path + function name
+  - Argument serialization with Flight protocol
+  - Why our demo uses manual keys
+
 ## How This Compares to Next.js
 
 | Feature | This Demo | Next.js |
