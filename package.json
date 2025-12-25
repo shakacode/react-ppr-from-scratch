@@ -1,7 +1,7 @@
 {
   "name": "ppr-from-scratch",
   "version": "1.0.0",
-  "description": "A simplified Partial Prerendering (PPR) demo to understand how Next.js implements it",
+  "description": "A from-scratch implementation of Partial Prerendering (PPR) demonstrating how Next.js prerenders pages with async components using two-phase rendering and React's resume API.",
   "type": "module",
   "scripts": {
     "setup-react": "bash scripts/setup-react.sh",
@@ -9,10 +9,28 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js"
   },
+  "keywords": [
+    "react",
+    "ppr",
+    "partial-prerendering",
+    "nextjs",
+    "ssr",
+    "streaming"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shakacode/react-ppr-from-scratch.git"
+  },
   "dependencies": {
-    "express": "^4.22.1",
-    "react": "file:.yalc/react",
-    "react-dom": "file:.yalc/react-dom",
-    "scheduler": "file:.yalc/scheduler"
+    "express": "^4.22.1"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

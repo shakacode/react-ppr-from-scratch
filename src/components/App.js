@@ -60,12 +60,9 @@ import { Header } from './Header.js';
 import { Footer } from './Footer.js';
 import { ProductList } from './ProductList.js';
 import { UserGreeting, UserGreetingFallback } from './UserGreeting.js';
-import { AsyncComponent } from './AsyncComponent.js';
+import { AsyncComponent, AsyncComponentFallback } from './AsyncComponent.js';
 
 export function App() {
-  const promise = new Promise((resolve) => {
-    setTimeout(resolve, 1000);
-  });
   return React.createElement('html', { lang: 'en' }, [
     React.createElement('head', { key: 'head' }, [
       React.createElement('meta', { key: 'charset', charSet: 'utf-8' }),
@@ -99,9 +96,18 @@ export function App() {
         // =====================================================================
         
         // =====================================================================
-        // ASYNC COMPONENT - Simulates an async operation
+        // CACHED ASYNC COMPONENT - Uses cache for prerendering
+        //
+        // This component has a 1-second async operation, but because it uses
+        // our cache mechanism, it will be PRERENDERED (not postponed)!
+        //
+        // The cache is warmed before prerendering, so the async function
+        // returns instantly during the actual prerender phase.
         // =====================================================================
-        React.createElement(Suspense, { key: 'async-suspense', fallback: React.createElement('div', null, 'Loading async component...') },  React.createElement(AsyncComponent, { key: 'async', promise })),
+        React.createElement(Suspense, {
+          key: 'async-suspense',
+          fallback: React.createElement(AsyncComponentFallback)
+        }, React.createElement(AsyncComponent, { key: 'async' })),
 
         // =====================================================================
         // DYNAMIC: User Greeting - Rendered at request time

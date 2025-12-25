@@ -1,6 +1,6 @@
 # PPR From Scratch
 
-A simplified implementation of **Partial Prerendering (PPR)** to demonstrate how Next.js implements this feature.
+A from-scratch implementation of **Partial Prerendering (PPR)** demonstrating how Next.js prerenders pages with async components using two-phase rendering and React's resume API.
 
 ## What is PPR?
 
@@ -10,185 +10,220 @@ Partial Prerendering combines **static** and **dynamic** rendering in a single p
 ┌─────────────────────────────────────────────────────────────┐
 │  STATIC SHELL (Prerendered at Build Time)                  │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │ <Header />                 ← Static (same for all)    │  │
+│  │ <Header />                 ← Static                   │  │
+│  │                                                       │  │
+│  │ <AsyncComponent />         ← Cached (component-level) │  │
 │  │                                                       │  │
 │  │ ┌───────────────────────────────────────────────────┐ │  │
-│  │ │ <Suspense fallback={<Loading />}>                 │ │  │
+│  │ │ <Suspense fallback={<Skeleton />}>               │ │  │
 │  │ │   <UserGreeting />       ← Dynamic (uses cookies) │ │  │
 │  │ │ </Suspense>                                       │ │  │
 │  │ └───────────────────────────────────────────────────┘ │  │
 │  │                                                       │  │
-│  │ <ProductList />            ← Static (same for all)    │  │
-│  │ <Footer />                 ← Static (same for all)    │  │
+│  │ <ProductList />            ← Static                   │  │
+│  │ <Footer />                 ← Static                   │  │
 │  └───────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## How It Works
+## Key Concepts
 
-### Build Time
-1. React renders the component tree
-2. When a component calls `cookies()`, it **suspends**
-3. The Suspense fallback is rendered in place of the dynamic content
-4. The result is saved as the "static shell"
+### Two-Phase Prerendering
 
-### Request Time
-1. User requests the page
-2. Server renders with real request data (cookies, headers, etc.)
-3. Dynamic components now get real values
-4. Full page is streamed to the client
+This demo implements Next.js's two-phase prerendering approach:
+
+**Phase 1: Prospective Render (Cache Filling)**
+- React prerenders the component tree
+- Async components with `cachedComponent()` execute their work
+- Results are stored in the cache
+- CacheSignal tracks when all cache reads complete
+
+**Phase 2: Final Render (Cache Reading)**
+- React prerenders again with warm caches
+- Cached components return instantly (no async work)
+- Static shell is captured with all cached content
+
+### Component-Level Caching
+
+Similar to Next.js's `'use cache'` directive, this demo caches **entire React element trees**:
+
+```javascript
+// In Next.js:
+async function AsyncComponent() {
+  'use cache'
+  await someAsyncWork();
+  return <div>Cached content</div>;
+}
+
+// In this demo:
+async function AsyncComponentImpl() {
+  await someAsyncWork();
+  return <div>Cached content</div>;
+}
+export const AsyncComponent = cachedComponent('async-component', AsyncComponentImpl);
+```
+
+On cache hit, no component code runs - cached React elements are returned directly.
+
+### Dynamic APIs & Postpone
+
+When a component calls a dynamic API like `cookies()`:
+
+1. **At build time**: `React.unstable_postpone()` is called
+2. React captures this as a "dynamic hole" in the static shell
+3. The Suspense fallback is rendered in place
+4. **At request time**: `resumeToPipeableStream()` fills the hole with real data
 
 ## Project Structure
 
 ```
 src/
+├── cache.js              # Component-level caching with CacheSignal
 ├── async-storage.js      # Tracks render mode (prerender vs request)
-├── dynamic-apis.js       # cookies(), headers() implementations
-├── build.js              # Build-time prerender script
-├── server.js             # Request-time server with streaming
+├── dynamic-apis.js       # cookies(), headers() with postpone support
+├── build.js              # Two-phase prerendering build script
+├── server.js             # Request-time server with resume()
 └── components/
-    ├── App.js            # Root component with Suspense boundary
-    ├── Header.js         # Static component
-    ├── Footer.js         # Static component
-    ├── ProductList.js    # Static component
-    └── UserGreeting.js   # Dynamic component (uses cookies)
+    ├── App.js            # Root component with Suspense boundaries
+    ├── AsyncComponent.js # Cached async component (1-second delay)
+    ├── UserGreeting.js   # Dynamic component (uses cookies)
+    └── ...               # Static components
 ```
 
-## Key Concepts
+## How It Works
 
-### 1. The Prerender Store (`async-storage.js`)
+### Build Time (`npm run build`)
 
-```javascript
-// During BUILD: Track dynamic API usage
-const prerenderStore = {
-  type: 'prerender',
-  dynamicAccesses: [],  // Track which APIs were called
-};
-
-// During REQUEST: Provide real request data
-const requestStore = {
-  type: 'request',
-  request: req,  // The actual HTTP request
-};
+```
+┌──────────────────────────────────────────────────────────────┐
+│  PHASE 1: Prospective Render                                 │
+│  ─────────────────────────────────────────────────────────── │
+│  • Start React prerender                                     │
+│  • AsyncComponent executes 1-second delay                    │
+│  • Result cached in memory                                   │
+│  • Wait for cacheReady() (all cache reads complete)          │
+│  • Abort and discard this render                             │
+└──────────────────────────────────────────────────────────────┘
+                              ↓
+┌──────────────────────────────────────────────────────────────┐
+│  PHASE 2: Final Render                                       │
+│  ─────────────────────────────────────────────────────────── │
+│  • Start React prerender with warm cache                     │
+│  • AsyncComponent returns INSTANTLY from cache               │
+│  • Dynamic components (cookies) → postpone()                 │
+│  • Capture static shell + postponed state                    │
+│  • Save to dist/                                             │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Dynamic APIs (`dynamic-apis.js`)
+### Request Time (`npm start`)
 
-```javascript
-async function cookies() {
-  const store = getStore();
-
-  if (store.type === 'prerender') {
-    // Can't access cookies at build time!
-    // Suspend this component to show fallback
-    trackDynamicAccess('cookies()');
-    throw NEVER_RESOLVES;  // Suspends forever
-  }
-
-  if (store.type === 'request') {
-    // Real request - return actual cookies
-    return parseCookies(store.request);
-  }
-}
+```
+┌──────────────────────────────────────────────────────────────┐
+│  1. Send static shell immediately                            │
+│  ─────────────────────────────────────────────────────────── │
+│  • User sees cached content + loading skeletons              │
+└──────────────────────────────────────────────────────────────┘
+                              ↓
+┌──────────────────────────────────────────────────────────────┐
+│  2. resumeToPipeableStream() with postponed state            │
+│  ─────────────────────────────────────────────────────────── │
+│  • React renders ONLY the dynamic parts                      │
+│  • Static shell is NOT re-rendered                           │
+│  • Stream dynamic content to fill holes                      │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### 3. Suspense Boundary (`components/App.js`)
+## Setup
 
-```javascript
-// The Suspense boundary is CRITICAL for PPR
-<Suspense fallback={<UserGreetingFallback />}>
-  <UserGreeting />  {/* This calls cookies() */}
-</Suspense>
-```
+This demo requires a custom React build with experimental APIs (`unstable_postpone`, `prerenderToNodeStream`). These aren't available in public npm releases.
 
-Without Suspense, the entire page would be dynamic!
+### Prerequisites
 
-### 4. Build Process (`build.js`)
+- Node.js 20+
+- Git
+- yarn (will be installed if missing)
+- yalc (will be installed if missing)
 
-```javascript
-// Use React's streaming SSR
-const { pipe, abort } = renderToPipeableStream(<App />);
+### Installation
 
-// When shell is ready (static content + fallbacks)
-onShellReady() {
-  pipe(outputStream);
+1. **Clone this repository:**
+   ```bash
+   git clone https://github.com/shakacode/react-ppr-from-scratch.git
+   cd react-ppr-from-scratch
+   ```
 
-  // Don't wait for suspended components
-  setTimeout(() => abort(), 100);
-}
-```
+2. **Clone React and run the setup script:**
+   ```bash
+   # Clone React repository
+   git clone https://github.com/facebook/react.git ../react
 
-### 5. Request Handling (`server.js`)
+   # Run the setup script (builds React and links via yalc)
+   npm run setup-react ../react
+   ```
 
-```javascript
-// Create store with real request
-const requestStore = createRequestStore(req);
+   The setup script will:
+   - Checkout React v19.2.3
+   - Build with experimental channel (`enableHalt=true`)
+   - Publish packages via yalc
+   - Link to this project
 
-// Render with streaming
-renderStorage.run(requestStore, () => {
-  const { pipe } = renderToPipeableStream(<App />);
+3. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-  onShellReady() {
-    pipe(res);  // Stream to response
-  }
-});
-```
+4. **Build and run:**
+   ```bash
+   # Build the static shell
+   npm run build
 
-## Running the Demo
+   # Start the server
+   npm start
 
-```bash
-# Install dependencies
-npm install
-
-# Build the static shell
-npm run build
-
-# Start the server
-npm start
-
-# Visit http://localhost:3000
-```
+   # Visit http://localhost:3000
+   ```
 
 ## Testing Dynamic Content
 
-1. Visit http://localhost:3000 → See "Welcome back, Guest!"
+1. Visit http://localhost:3000 → See "Welcome, Guest!"
 2. Visit http://localhost:3000/login?name=Alice → Set cookie
-3. Visit http://localhost:3000 → See "Welcome back, Alice!"
+3. Visit http://localhost:3000 → See "Welcome, Alice!"
 4. Visit http://localhost:3000/logout → Clear cookie
 
-## How This Differs from Next.js
+Watch the terminal to see:
+- Cache hits/misses during build
+- Resume streaming at request time
+
+## Key Files to Study
+
+1. **`src/cache.js`** - CacheSignal implementation, component-level caching
+2. **`src/build.js`** - Two-phase prerendering (prospective + final)
+3. **`src/server.js`** - Request-time resume with `resumeToPipeableStream()`
+4. **`src/dynamic-apis.js`** - How `cookies()` triggers postpone
+5. **`src/components/AsyncComponent.js`** - Cached async component example
+
+## How This Compares to Next.js
 
 | Feature | This Demo | Next.js |
 |---------|-----------|---------|
-| React Version | Public React 19 | Custom canary build |
-| Postpone API | Simulated via suspension | `React.unstable_postpone()` |
-| Resume API | Fresh render | `react-dom/server.resume()` |
-| Caching | None | Resume data cache |
-| Streaming | Basic | Advanced with transforms |
+| Cache Key Generation | Manual string keys | Compiler-generated from file + function name |
+| Cache Directive | `cachedComponent()` wrapper | `'use cache'` directive |
+| RSC Serialization | Simple JSON | Flight protocol |
+| Two-Phase Render | Yes | Yes |
+| CacheSignal | Simplified | Full implementation |
+| Resume API | `resumeToPipeableStream()` | `resumeToPipeableStream()` |
 
-Next.js uses internal React APIs that aren't public:
-- `React.unstable_postpone()` - Creates true "dynamic holes"
-- `react-dom/static.prerender()` - Returns a `postponed` object
-- `react-dom/server.resume()` - Continues from postponed state
+## Why Custom React Build?
 
-This demo achieves similar results using public APIs by:
-- Using Suspense + suspension for dynamic holes
-- Doing fresh renders at request time
+Next.js uses internal React APIs that aren't publicly exported:
 
-## Key Takeaways
+- **`React.unstable_postpone()`** - Creates "dynamic holes" in static shell
+- **`prerenderToNodeStream()`** - Returns `postponed` state object
+- **`resumeToPipeableStream()`** - Continues from postponed state
 
-1. **Static vs Dynamic** - A component becomes dynamic when it accesses request-specific data
-2. **Suspense is the boundary** - Wrap dynamic components in Suspense to isolate them
-3. **Streaming is key** - React's streaming SSR enables progressive loading
-4. **Build-time detection** - Track dynamic API usage to know which components are dynamic
+These require building React with `enableHalt=true` in the feature flags.
 
-## Files to Study
+## License
 
-Start with these files in order:
-1. `src/async-storage.js` - Understand the render context
-2. `src/dynamic-apis.js` - See how dynamic APIs trigger suspension
-3. `src/components/UserGreeting.js` - A dynamic component
-4. `src/build.js` - The build-time prerender
-5. `src/server.js` - Request-time rendering
-
-Each file is extensively commented to explain the concepts!
+MIT

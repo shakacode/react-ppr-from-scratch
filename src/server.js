@@ -36,6 +36,10 @@ import { renderToPipeableStream, resumeToPipeableStream } from 'react-dom/server
 import { App } from './components/App.js';
 import { renderStorage, createRequestStore } from './async-storage.js';
 
+// Load the cache (populated at build time)
+import { loadCache } from './cache.js';
+loadCache();
+
 const app = express();
 const PORT = 3000;
 
