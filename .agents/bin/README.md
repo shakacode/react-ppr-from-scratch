@@ -5,7 +5,7 @@
 Standard entry points that portable agent-workflow skills call. A script that
 is absent means that capability is n/a in this repository.
 
-Invoke the `build`, `test`, and `validate` wrappers without arguments. They
+Invoke the `setup`, `build`, `test`, and `validate` wrappers without arguments. They
 enforce the repository's fixed workflow contract; use the underlying npm
 command directly for custom build options.
 

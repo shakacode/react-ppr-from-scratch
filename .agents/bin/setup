@@ -7,6 +7,12 @@ set -euo pipefail
 
 cd "$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
 
+if [ "$#" -ne 0 ]; then
+  printf '%s\n' "Usage: .agents/bin/setup" >&2
+  printf '%s\n' "This wrapper does not accept arguments; run npm directly to prepare the external React checkout." >&2
+  exit 64
+fi
+
 fail() {
   printf '%s\n' "PPR setup prerequisite is not ready: $1" >&2
   printf '%s\n' >&2 \
