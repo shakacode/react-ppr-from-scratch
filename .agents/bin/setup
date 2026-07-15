@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Verify the local prerequisites for this experimental PPR demo.
+#
+# This intentionally does not clone, build, or link React. Those operations
+# belong to an operator-prepared React checkout; see README.md#setup.
+set -euo pipefail
+
+cd "$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
+
+fail() {
+  printf '%s\n' "PPR setup prerequisite is not ready: $1" >&2
+  printf '%s\n' >&2 \
+    "This demo needs npm dependencies plus a yalc-linked experimental React build." \
+    "Prepare a React checkout outside this repository, then run: npm run setup-react /absolute/path/to/react" \
+    "Run npm install afterwards only if its dependencies are still missing." \
+    "The setup-react command performs the React build and yalc linking. This wrapper never clones, downloads, builds, or links React automatically." \
+    "See README.md#setup for the full prerequisite sequence."
+  exit 1
+}
+
+command -v node >/dev/null 2>&1 || fail "Node.js is not installed"
+
+for package in react react-dom scheduler; do
+  [ -f ".yalc/$package/package.json" ] || fail "the yalc-linked $package package is missing (.yalc/$package)"
+done
+
+[ -f node_modules/express/package.json ] || fail "npm dependencies are missing (node_modules/express)"
+
+node - <<'NODE' || fail "node_modules is missing or React is not linked to an experimental build with unstable_postpone"
+const React = require('react');
+const ReactDOMServer = require('react-dom/server');
+
+if (typeof React.unstable_postpone !== 'function') process.exit(1);
+if (typeof ReactDOMServer.resumeToPipeableStream !== 'function') process.exit(1);
+NODE
+
+printf '%s\n' "PPR prerequisites verified: npm dependencies and yalc-linked experimental React are available."

@@ -153,12 +153,13 @@ This demo requires a custom React build with experimental APIs (`unstable_postpo
    cd react-ppr-from-scratch
    ```
 
-2. **Clone React and run the setup script:**
+2. **Prepare an external React checkout and link it with yalc:**
    ```bash
-   # Clone React repository
+   # Choose and prepare a React checkout outside this repository.
+   # Cloning is intentionally an operator action, not part of the seam.
    git clone https://github.com/facebook/react.git ../react
 
-   # Run the setup script (builds React and links via yalc)
+   # This repository script builds that checkout and links it via yalc.
    npm run setup-react ../react
    ```
 
@@ -168,7 +169,7 @@ This demo requires a custom React build with experimental APIs (`unstable_postpo
    - Publish packages via yalc
    - Link to this project
 
-3. **Install dependencies:**
+3. **Install npm dependencies (if the yalc setup did not already install them):**
    ```bash
    npm install
    ```
@@ -183,6 +184,11 @@ This demo requires a custom React build with experimental APIs (`unstable_postpo
 
    # Visit http://localhost:3000
    ```
+
+   The portable workflow setup check, `.agents/bin/setup`, validates these
+   prerequisites without cloning, downloading, building, or linking React. It
+   fails with the same manual command when the yalc-linked experimental build
+   is absent; `build`, `validate`, and `test` run that check first.
 
 ## Testing Dynamic Content
 

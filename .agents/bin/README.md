@@ -7,11 +7,11 @@ is absent means that capability is n/a in this repository.
 
 | Script | Purpose | This repo runs |
 | --- | --- | --- |
-| `setup` | Install dependencies | n/a |
-| `validate` | Pre-push gate | `npm run build` |
-| `test` | Run tests | `npm run build` |
+| `setup` | Verify local prerequisites | Checks npm dependencies and the operator-prepared, yalc-linked experimental React build; it does not clone, download, build, or link React. |
+| `validate` | Pre-push gate | Verifies prerequisites, then `npm run build` |
+| `test` | Run tests | Verifies prerequisites, then `npm run build` |
 | `lint` | Lint / format | n/a |
-| `build` | Build / type-check | `npm run build` |
+| `build` | Build / type-check | Verifies prerequisites, then `npm run build` |
 | `docs` | Docs checks | n/a |
 | `ci-detect` | CI change detector | n/a |
 
