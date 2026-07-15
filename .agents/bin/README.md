@@ -11,7 +11,7 @@ is absent means that capability is n/a in this repository.
 | `validate` | Pre-push gate | `npm run build` |
 | `test` | Run tests | `npm run build` |
 | `lint` | Lint / format | n/a |
-| `build` | Build / type-check | n/a |
+| `build` | Build / type-check | `npm run build` |
 | `docs` | Docs checks | n/a |
 | `ci-detect` | CI change detector | n/a |
 
