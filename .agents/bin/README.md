@@ -5,11 +5,15 @@
 Standard entry points that portable agent-workflow skills call. A script that
 is absent means that capability is n/a in this repository.
 
+Invoke the `build`, `test`, and `validate` wrappers without arguments. They
+enforce the repository's fixed workflow contract; use the underlying npm
+command directly for custom build options.
+
 | Script | Purpose | This repo runs |
 | --- | --- | --- |
 | `setup` | Verify local prerequisites | Checks npm dependencies and the operator-prepared, yalc-linked experimental React build; it does not clone, download, build, or link React. |
 | `validate` | Pre-push gate | Verifies prerequisites, then `npm run build` |
-| `test` | Run tests | Verifies prerequisites, then `npm run build` |
+| `test` | Build-equivalent test check | Verifies prerequisites, then `npm run build`; this demo has no separate automated test suite. |
 | `lint` | Lint / format | n/a |
 | `build` | Build / type-check | Verifies prerequisites, then `npm run build` |
 | `docs` | Docs checks | n/a |
