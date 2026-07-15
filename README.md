@@ -136,7 +136,7 @@ src/
 
 ## Setup
 
-This demo requires a custom React build with experimental APIs (`unstable_postpone`, `prerenderToNodeStream`). These aren't available in public npm releases.
+This demo requires a custom React build with experimental APIs (`unstable_postpone`, `prerenderToNodeStream`, and `resumeToPipeableStream`). These aren't available in public npm releases.
 
 ### Prerequisites
 
@@ -186,7 +186,8 @@ This demo requires a custom React build with experimental APIs (`unstable_postpo
    ```
 
    The portable workflow setup check, `.agents/bin/setup`, validates these
-   prerequisites without cloning, downloading, building, or linking React. It
+   prerequisites and verifies each experimental API the demo's build and
+   server use, without cloning, downloading, building, or linking React. It
    fails with the same manual command when the yalc-linked experimental build
    is absent; `build`, `validate`, and `test` run that check first.
 
