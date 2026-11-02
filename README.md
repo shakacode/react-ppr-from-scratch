@@ -185,7 +185,7 @@ This demo requires a custom React build with experimental APIs (`unstable_postpo
    # Visit http://localhost:3000
    ```
 
-   The portable workflow setup check, `.agents/bin/setup`, validates these
+   The portable workflow setup check, `.agents/shaka/bin/setup`, validates these
    prerequisites and verifies each experimental API the demo's build and
    server use, without cloning, downloading, building, or linking React. It
    fails with the same manual command when the yalc-linked experimental build
