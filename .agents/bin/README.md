@@ -19,4 +19,4 @@ command directly for custom build options.
 | `docs` | Docs checks | n/a |
 | `ci-detect` | CI change detector | n/a |
 
-Non-command policy lives in [`../agent-workflow.yml`](../agent-workflow.yml).
+Non-command policy lives in [`../shaka/config.yml`](../shaka/config.yml).

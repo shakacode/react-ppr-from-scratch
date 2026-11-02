@@ -9,5 +9,5 @@ if [ "$#" -ne 0 ]; then
   exit 64
 fi
 
-.agents/bin/setup
+.agents/shaka/bin/setup
 exec npm run build
